@@ -9,6 +9,12 @@ ShipCheck scores any public GitHub repository's README from **0–100** across *
 ![Flagsmith](https://img.shields.io/badge/Flagsmith-12.5%20SDK%20%C2%B7%20CLI%20v2-8b5cf6)
 ![Backend](https://img.shields.io/badge/backend-none-71717a)
 
+## Live Demo
+
+👉 **Try ShipCheck live:** [https://shipcheck-lime.vercel.app](https://shipcheck-lime.vercel.app)
+
+> Test any public GitHub repository (e.g. `facebook/react`), deep-link with `?repo=owner/repo`, or try the built-in sample repositories in 1 click. Zero signup or database required.
+
 ![ShipCheck hero](docs/screenshots/hero.png)
 
 ---
@@ -147,6 +153,26 @@ npm install
 cp .env.example .env          # add VITE_FLAGSMITH_ENV_KEY when you have it
 npm run dev                   # http://localhost:5173
 ```
+
+## Usage
+
+Scan any public repository directly in your browser or share a preloaded link:
+
+```bash
+# Deep-link to any public GitHub repository
+https://shipcheck-lime.vercel.app/?repo=owner/repo
+
+# Or run with npx (preview CLI)
+npx shipcheck owner/repo
+```
+
+## Contributing
+
+Contributions are welcome! Please follow these steps:
+1. Fork the repo and create a branch: `git checkout -b feat/my-improvement`
+2. Install dependencies: `npm install`
+3. Start local development: `npm run dev`
+4. Open a pull request. See [CONTRIBUTING.md](./CONTRIBUTING.md) for full guidelines.
 
 Without an environment key the app still works: it serves the safe `control` fallback and the Inspector clearly reports **“Fallback mode (no environment key)”**. Nothing crashes, and judges can score repos immediately.
 

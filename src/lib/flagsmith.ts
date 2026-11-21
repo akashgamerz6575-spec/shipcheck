@@ -203,7 +203,12 @@ export class ShipCheckExperiment {
       const value = flag?.value
       const variant: Variant = value === 'guided_fix' ? 'guided_fix' : 'control'
       this.lastVariant = variant
-      const inExperiment = Boolean(flag?.experiment?.inExperiment)
+      const inExperiment = Boolean(
+        flag?.experiment?.inExperiment ||
+          flag?.reason?.toLowerCase().includes('experiment') ||
+          (flag?.variant && flag.variant !== 'default') ||
+          flag?.enabled,
+      )
       if (inExperiment) {
         // Ensure the exposure leaves the buffer immediately for demos.
         void this.client.flushEvents()

@@ -11,3 +11,5 @@ flagsmith.env
 .vite
 coverage
 scripts/.simulate-*
+
+.vercel
