@@ -98,8 +98,10 @@ try {
         fixButtons: [...document.querySelectorAll('button')].filter((button) =>
           button.textContent?.includes('Copy fix snippet'),
         ).length,
-        checklistButton: [...document.querySelectorAll('button')].some((button) =>
-          button.textContent?.includes('Copy checklist report'),
+        checklistButton: [...document.querySelectorAll('button')].some(
+          (button) =>
+            button.textContent?.includes('Copy Checklist Summary') ||
+            button.textContent?.includes('Copy checklist report'),
         ),
         snippetText: bodyText.includes('Copy all 2 missing sections'),
         failedChecks: document.querySelectorAll('[data-check-status="fail"]').length,
@@ -241,6 +243,26 @@ try {
     assert(pasteResult.score.includes('25'), `paste path should score 25, got "${pasteResult.score}"`)
     assert(pasteResult.repo, 'paste path should keep the supplied repo name')
     console.log('ok  dev paste-README path scores 25/100')
+    await page.close()
+  }
+
+  // Deep-link ?repo= check (dev only).
+  if (mode === 'dev') {
+    const page = await browser.newPage()
+    await page.setViewport({ width: 1280, height: 900, deviceScaleFactor: 1 })
+    await page.goto(`${base}/?repo=pulse-labs/pulse-api`, { waitUntil: 'networkidle2' })
+    await page.waitForSelector('[data-check-id="problem"]', { timeout: 15000 })
+    const deepResult = await page.evaluate(() => ({
+      score: document.querySelector('[aria-label="Readiness score"]')?.textContent ?? '',
+      repo: document.body.innerText.includes('pulse-labs/pulse-api'),
+      hasShareButton: [...document.querySelectorAll('button')].some((b) =>
+        b.textContent?.includes('Copy share link'),
+      ),
+    }))
+    assert(deepResult.score.includes('70'), `deep-link path should score 70, got "${deepResult.score}"`)
+    assert(deepResult.repo, 'deep-link path should load the pulse-labs/pulse-api repo')
+    assert(deepResult.hasShareButton, 'deep-link path should render "Copy share link" button')
+    console.log('ok  dev deep-link ?repo= auto-scan + share button verified')
     await page.close()
   }
 

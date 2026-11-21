@@ -14,6 +14,7 @@ interface CheckCardProps {
   check: CheckResult
   variant: Variant
   index: number
+  defaultExpanded?: boolean
   onFixCopied: (check: CheckResult) => void
 }
 
@@ -24,8 +25,14 @@ const severityStyles: Record<Severity, string> = {
   low: 'border-ink-600 bg-ink-800 text-zinc-400',
 }
 
-export function CheckCard({ check, variant, index, onFixCopied }: CheckCardProps) {
-  const [expanded, setExpanded] = useState(false)
+export function CheckCard({
+  check,
+  variant,
+  index,
+  defaultExpanded = false,
+  onFixCopied,
+}: CheckCardProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded)
   const showSnippet = variant === 'guided_fix' && !check.passed
 
   return (

@@ -38,6 +38,11 @@ export function ScoreHeader({
         ? 'Pasted README'
         : 'GitHub API'
 
+  const shareUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}${window.location.pathname}?repo=${encodeURIComponent(bundle.meta.fullName)}`
+      : ''
+
   return (
     <section className="card animate-fade-up overflow-hidden" aria-label="Readiness score">
       <div className="flex flex-col gap-6 p-5 sm:p-7 lg:flex-row lg:items-center">
@@ -131,11 +136,22 @@ export function ScoreHeader({
             ) : (
               <CopyButton
                 text={analysis.checklistReport}
-                label="Copy checklist report"
+                label="Copy Checklist Summary"
                 copiedLabel="Checklist copied"
                 variant="primary"
                 onCopied={onCopyReport}
                 title="Copies the full pass/fail diagnostic report"
+              />
+            )}
+
+            {shareUrl && (
+              <CopyButton
+                text={shareUrl}
+                label="Copy share link"
+                copiedLabel="Share link copied"
+                variant="secondary"
+                size="sm"
+                title="Copy shareable link with ?repo= query parameter"
               />
             )}
 

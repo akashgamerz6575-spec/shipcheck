@@ -16,9 +16,11 @@ export interface ExperimentHook {
   variant: Variant
   source: VariantSource
   exposureRecorded: boolean
+  exposureTimestamp: string | null
   inExperiment: boolean
   conversionRecorded: boolean
   conversionSent: boolean
+  conversionTimestamp: string | null
   hasKey: boolean
   previewOverride: boolean
   evaluateScan: () => Promise<void>
@@ -38,9 +40,11 @@ export function useShipCheckExperiment(): ExperimentHook {
     readPreviewOverride() ? 'preview' : 'fallback',
   )
   const [exposureRecorded, setExposureRecorded] = useState(false)
+  const [exposureTimestamp, setExposureTimestamp] = useState<string | null>(null)
   const [inExperiment, setInExperiment] = useState(false)
   const [conversionRecorded, setConversionRecorded] = useState(false)
   const [conversionSent, setConversionSent] = useState(false)
+  const [conversionTimestamp, setConversionTimestamp] = useState<string | null>(null)
   const experimentRef = useRef<ShipCheckExperiment | null>(null)
 
   const experiment = useMemo(() => {
@@ -75,13 +79,18 @@ export function useShipCheckExperiment(): ExperimentHook {
     setSource(result.source)
     setExposureRecorded(result.exposureRecorded)
     setInExperiment(result.inExperiment)
+    if (result.exposureRecorded || result.inExperiment) {
+      setExposureTimestamp(new Date().toLocaleTimeString())
+    }
   }, [experiment])
 
   const trackAction = useCallback(
     async (action: string, repo: string) => {
       setConversionRecorded(true)
+      const now = new Date().toLocaleTimeString()
       const sent = await experiment.trackFixCompleted(action, repo)
       setConversionSent(sent)
+      setConversionTimestamp(now)
     },
     [experiment],
   )
@@ -97,9 +106,11 @@ export function useShipCheckExperiment(): ExperimentHook {
     variant,
     source,
     exposureRecorded,
+    exposureTimestamp,
     inExperiment,
     conversionRecorded,
     conversionSent,
+    conversionTimestamp,
     hasKey: hasEnvKey(),
     previewOverride: source === 'preview',
     evaluateScan,

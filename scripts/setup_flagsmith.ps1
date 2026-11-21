@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     ShipCheck - one-command Flagsmith experiment provisioning (PowerShell version)
 .DESCRIPTION

@@ -1,7 +1,8 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
+  ChevronDown,
   FlaskConical,
   Loader2,
   RefreshCw,
@@ -22,9 +23,10 @@ import { SiteHeader } from './components/SiteHeader'
 import { ScanForm } from './components/ScanForm'
 import { ScoreHeader } from './components/ScoreHeader'
 import { CheckCard } from './components/CheckCard'
+import { CopyButton } from './components/CopyButton'
 import { EmptyState } from './components/EmptyState'
 import { ExperimentInspector } from './components/ExperimentInspector'
-import type { SampleRepo } from './data/samples'
+import { SAMPLE_REPOS, type SampleRepo } from './data/samples'
 
 interface ScanError {
   message: string
@@ -55,7 +57,9 @@ export default function App() {
   const [error, setError] = useState<ScanError | null>(null)
   const [activeSampleId, setActiveSampleId] = useState<string | null>(null)
   const [inspectorOpen, setInspectorOpen] = useState(false)
+  const [passedOpen, setPassedOpen] = useState(false)
   const resultsRef = useRef<HTMLDivElement>(null)
+  const initialScanRef = useRef(false)
 
   const { evaluateScan, trackAction, variant } = experiment
   const isGuided = variant === 'guided_fix'
@@ -75,6 +79,17 @@ export default function App() {
         language: nextBundle.meta.language,
         topics: nextBundle.meta.topics,
       })
+
+      // Update ?repo= in URL for sharing
+      if (nextBundle.meta.fullName && nextBundle.meta.source !== 'paste') {
+        try {
+          const url = new URL(window.location.href)
+          url.searchParams.set('repo', nextBundle.meta.fullName)
+          window.history.replaceState({}, '', url.toString())
+        } catch {
+          // ignore
+        }
+      }
 
       // Evaluate only when the user is about to see a result, so exposures
       // reflect real scans instead of page bounces.
@@ -150,8 +165,37 @@ export default function App() {
     setError(null)
     setStatus('idle')
     setActiveSampleId(null)
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('repo')
+      window.history.replaceState({}, '', url.toString())
+    } catch {
+      // ignore
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [])
+
+  useEffect(() => {
+    if (initialScanRef.current) return
+    initialScanRef.current = true
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const repoParam = params.get('repo')
+      if (repoParam && repoParam.trim()) {
+        const clean = repoParam.trim()
+        const sample = SAMPLE_REPOS.find(
+          (s) => s.bundle.meta.fullName.toLowerCase() === clean.toLowerCase(),
+        )
+        if (sample) {
+          void runBundle(sample.bundle, sample.id)
+        } else {
+          void handleScanRepo(clean)
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [handleScanRepo, runBundle])
 
   return (
     <div className="min-h-screen">
@@ -201,14 +245,26 @@ export default function App() {
               <ArrowRight className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />
               Readiness report
             </div>
-            <button
-              type="button"
-              onClick={resetScan}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-ink-600 bg-ink-800/70 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition-colors hover:border-brand-500/50 hover:text-white"
-            >
-              <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
-              New scan
-            </button>
+            <div className="flex items-center gap-2">
+              {bundle?.meta.fullName && bundle.meta.source !== 'paste' && (
+                <CopyButton
+                  text={`${window.location.origin}${window.location.pathname}?repo=${encodeURIComponent(bundle.meta.fullName)}`}
+                  label="Copy share link"
+                  copiedLabel="Link copied"
+                  variant="secondary"
+                  size="sm"
+                  title="Copy a direct share link with ?repo= query parameter"
+                />
+              )}
+              <button
+                type="button"
+                onClick={resetScan}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-ink-600 bg-ink-800/70 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition-colors hover:border-brand-500/50 hover:text-white"
+              >
+                <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />
+                New scan
+              </button>
+            </div>
           </div>
         )}
 
@@ -251,59 +307,99 @@ export default function App() {
           </div>
         )}
 
-        {result && bundle && (
-          <div ref={resultsRef} className="mt-6 scroll-mt-24 space-y-5">
-            <ScoreHeader
-              analysis={result}
-              bundle={bundle}
-              variant={variant}
-              onCopyReport={handleCopyReport}
-              onCopyAllFixes={handleCopyAllFixes}
-            />
+        {result && bundle && (() => {
+          const failedChecks = result.checks.filter((c) => !c.passed)
+          const passedChecks = result.checks.filter((c) => c.passed)
 
-            <section aria-label="Readiness checks">
-              <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-                <div>
-                  <h2 className="text-sm font-semibold tracking-wide text-zinc-200 uppercase">
-                    Readiness checks
-                  </h2>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {isGuided
-                      ? 'Open any failing check to preview its Markdown fix, then copy it into your README.'
-                      : 'Each failing check explains the gap and its severity. Copy the full report to work through it offline.'}
-                  </p>
+          return (
+            <div ref={resultsRef} className="mt-6 scroll-mt-24 space-y-5">
+              <ScoreHeader
+                analysis={result}
+                bundle={bundle}
+                variant={variant}
+                onCopyReport={handleCopyReport}
+                onCopyAllFixes={handleCopyAllFixes}
+              />
+
+              <section aria-label="Readiness checks">
+                <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+                  <div>
+                    <h2 className="text-sm font-semibold tracking-wide text-zinc-200 uppercase">
+                      Readiness checks
+                    </h2>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      {isGuided
+                        ? 'Failing checks appear first. Open any check to preview its Markdown fix, then copy it into your README.'
+                        : 'Failing checks appear first. Each explains the gap and its severity. Copy the checklist summary to work through offline.'}
+                    </p>
+                  </div>
+                  <span className="mono text-[11px] text-zinc-500">
+                    {result.passedCount}/{result.checks.length} passed · {result.score}/100
+                  </span>
                 </div>
-                <span className="mono text-[11px] text-zinc-500">
-                  {result.passedCount}/{result.checks.length} passed · {result.score}/100
+
+                <div className="space-y-2.5">
+                  {failedChecks.map((check, index) => (
+                    <CheckCard
+                      key={check.id}
+                      check={check}
+                      variant={variant}
+                      index={index}
+                      defaultExpanded={isGuided && index === 0}
+                      onFixCopied={handleFixCopied}
+                    />
+                  ))}
+                </div>
+
+                {passedChecks.length > 0 && (
+                  <div className="mt-4 rounded-xl border border-ink-800 bg-ink-950/40 p-3 sm:p-4">
+                    <button
+                      type="button"
+                      onClick={() => setPassedOpen((open) => !open)}
+                      className="flex w-full items-center justify-between text-left text-xs font-semibold text-zinc-300 hover:text-white transition-colors"
+                      aria-expanded={passedOpen}
+                    >
+                      <div className="flex items-center gap-2">
+                        <ShieldCheck className="h-4 w-4 text-brand-400" aria-hidden="true" />
+                        <span>Passed checks ({passedChecks.length})</span>
+                        <span className="rounded-md border border-brand-500/30 bg-brand-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-brand-300">
+                          All criteria met
+                        </span>
+                      </div>
+                      <ChevronDown
+                        className={`h-4 w-4 text-zinc-400 transition-transform ${passedOpen ? 'rotate-180' : ''}`}
+                        aria-hidden="true"
+                      />
+                    </button>
+                    <div className={`space-y-2.5 ${passedOpen ? 'mt-3.5' : 'hidden'}`}>
+                      {passedChecks.map((check, index) => (
+                        <CheckCard
+                          key={check.id}
+                          check={check}
+                          variant={variant}
+                          index={failedChecks.length + index}
+                          onFixCopied={handleFixCopied}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-ink-700/60 bg-ink-900/40 px-4 py-3 text-[11px] text-zinc-500">
+                <span>
+                  Scored deterministically in the browser · {result.maxScore} points across 8 checks
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <FlaskConical className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />
+                  {isGuided
+                    ? 'guided_fix: copy actions feed fix_action_completed'
+                    : 'control: report export feeds fix_action_completed'}
                 </span>
               </div>
-
-              <div className="space-y-2.5">
-                {result.checks.map((check, index) => (
-                  <CheckCard
-                    key={check.id}
-                    check={check}
-                    variant={variant}
-                    index={index}
-                    onFixCopied={handleFixCopied}
-                  />
-                ))}
-              </div>
-            </section>
-
-            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-ink-700/60 bg-ink-900/40 px-4 py-3 text-[11px] text-zinc-500">
-              <span>
-                Scored deterministically in the browser · {result.maxScore} points across 8 checks
-              </span>
-              <span className="flex items-center gap-1.5">
-                <FlaskConical className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />
-                {isGuided
-                  ? 'guided_fix: copy actions feed fix_action_completed'
-                  : 'control: report export feeds fix_action_completed'}
-              </span>
             </div>
-          </div>
-        )}
+          )
+        })()}
 
         {!result && !busy && <EmptyState variant={variant} />}
 
@@ -330,9 +426,11 @@ export default function App() {
         variant={variant}
         sdkStatus={experiment.sdkStatus}
         exposureRecorded={experiment.exposureRecorded}
+        exposureTimestamp={experiment.exposureTimestamp}
         inExperiment={experiment.inExperiment}
         conversionRecorded={experiment.conversionRecorded}
         conversionSent={experiment.conversionSent}
+        conversionTimestamp={experiment.conversionTimestamp}
         hasKey={experiment.hasKey}
         previewOverride={experiment.previewOverride}
         onResetVisitor={experiment.resetVisitor}

@@ -3,7 +3,9 @@ import {
   CheckCircle2,
   ChevronUp,
   CircleDashed,
+  Clock,
   Copy,
+  ExternalLink,
   Fingerprint,
   FlaskConical,
   RefreshCw,
@@ -27,9 +29,11 @@ interface ExperimentInspectorProps {
   variant: Variant
   sdkStatus: SdkStatus
   exposureRecorded: boolean
+  exposureTimestamp?: string | null
   inExperiment: boolean
   conversionRecorded: boolean
   conversionSent: boolean
+  conversionTimestamp?: string | null
   hasKey: boolean
   previewOverride: boolean
   onResetVisitor: () => void
@@ -49,9 +53,11 @@ export function ExperimentInspector({
   variant,
   sdkStatus,
   exposureRecorded,
+  exposureTimestamp,
   inExperiment,
   conversionRecorded,
   conversionSent,
+  conversionTimestamp,
   hasKey,
   previewOverride,
   onResetVisitor,
@@ -59,6 +65,7 @@ export function ExperimentInspector({
   const [copiedId, setCopiedId] = useState(false)
   const isGuided = variant === 'guided_fix'
   const status = statusCopy[sdkStatus]
+  const dashboardUrl = 'https://app.flagsmith.com/project/55323'
 
   async function copyVisitor() {
     const ok = await copyText(visitorId)
@@ -113,9 +120,21 @@ export function ExperimentInspector({
         <div className="max-h-[68vh] overflow-y-auto border-t border-ink-800/80">
           <div className="mx-auto grid max-w-6xl gap-3 px-4 py-4 sm:px-6 lg:grid-cols-2">
             <div className="rounded-xl border border-ink-700/70 bg-ink-900/60 p-4">
-              <div className="flex items-center gap-2 text-[11px] font-semibold tracking-wide text-zinc-500 uppercase">
-                <Fingerprint className="h-3.5 w-3.5" aria-hidden="true" />
-                Visitor identity
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[11px] font-semibold tracking-wide text-zinc-500 uppercase">
+                  <Fingerprint className="h-3.5 w-3.5" aria-hidden="true" />
+                  Visitor identity
+                </div>
+                <a
+                  href={dashboardUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-400 transition-colors hover:text-brand-300 hover:underline"
+                  title="Open live Flagsmith project dashboard"
+                >
+                  Flagsmith Dashboard
+                  <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                </a>
               </div>
               <p className="mono mt-2 break-all text-[12px] text-zinc-200">{visitorId}</p>
               <div className="mt-3 flex flex-wrap gap-2">
@@ -195,18 +214,28 @@ export function ExperimentInspector({
                 <TelemetryBadge
                   label="Exposure"
                   active={exposureRecorded}
-                  detail={exposureRecorded ? 'recorded' : 'waiting for scan'}
+                  detail={
+                    exposureRecorded
+                      ? exposureTimestamp
+                        ? `Recorded at ${exposureTimestamp}`
+                        : 'recorded'
+                      : 'waiting for scan'
+                  }
+                  timestamp={exposureTimestamp}
                 />
                 <TelemetryBadge
                   label="Conversion"
                   active={conversionRecorded}
                   detail={
                     conversionRecorded
-                      ? conversionSent
-                        ? 'sent'
-                        : 'local only'
+                      ? conversionTimestamp
+                        ? `${conversionSent ? 'Sent' : 'Recorded'} at ${conversionTimestamp}`
+                        : conversionSent
+                          ? 'sent'
+                          : 'local only'
                       : 'no action yet'
                   }
+                  timestamp={conversionTimestamp}
                 />
               </div>
               <p className="mono mt-3 text-[11px] text-zinc-500">
@@ -216,9 +245,12 @@ export function ExperimentInspector({
             </div>
 
             <div className="rounded-xl border border-ink-700/70 bg-ink-900/60 p-4">
-              <div className="flex items-center gap-2 text-[11px] font-semibold tracking-wide text-zinc-500 uppercase">
-                <Beaker className="h-3.5 w-3.5" aria-hidden="true" />
-                Hypothesis
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-[11px] font-semibold tracking-wide text-zinc-500 uppercase">
+                  <Beaker className="h-3.5 w-3.5" aria-hidden="true" />
+                  Hypothesis
+                </div>
+                <span className="mono text-[10px] text-zinc-500">Project ID: 55323</span>
               </div>
               <p className="mt-2 text-[12px] leading-relaxed text-zinc-400">
                 {EXPERIMENT_HYPOTHESIS}
@@ -239,10 +271,12 @@ function TelemetryBadge({
   label,
   active,
   detail,
+  timestamp,
 }: {
   label: string
   active: boolean
   detail: string
+  timestamp?: string | null
 }) {
   return (
     <div
@@ -252,13 +286,21 @@ function TelemetryBadge({
           : 'border-ink-700 bg-ink-950/50'
       }`}
     >
-      <div className="flex items-center gap-1.5 text-[10px] font-semibold tracking-wide text-zinc-500 uppercase">
-        {active ? (
-          <CheckCircle2 className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />
-        ) : (
-          <CircleDashed className="h-3.5 w-3.5 text-zinc-600" aria-hidden="true" />
+      <div className="flex items-center justify-between text-[10px] font-semibold tracking-wide text-zinc-500 uppercase">
+        <span className="flex items-center gap-1.5">
+          {active ? (
+            <CheckCircle2 className="h-3.5 w-3.5 text-brand-400" aria-hidden="true" />
+          ) : (
+            <CircleDashed className="h-3.5 w-3.5 text-zinc-600" aria-hidden="true" />
+          )}
+          {label}
+        </span>
+        {timestamp && active && (
+          <span className="flex items-center gap-1 text-[10px] text-zinc-500 font-mono">
+            <Clock className="h-2.5 w-2.5 text-brand-400/70" aria-hidden="true" />
+            {timestamp}
+          </span>
         )}
-        {label}
       </div>
       <p className={`mt-1 text-[11px] ${active ? 'text-brand-300' : 'text-zinc-500'}`}>{detail}</p>
     </div>
