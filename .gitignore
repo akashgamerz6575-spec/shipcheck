@@ -1,0 +1,13 @@
+node_modules
+dist
+dist-ssr
+*.local
+.env
+.env.*
+!.env.example
+flagsmith.env
+.DS_Store
+*.log
+.vite
+coverage
+scripts/.simulate-*

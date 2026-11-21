@@ -1,0 +1,115 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono:
+    'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-ink-950: #070a0f;
+  --color-ink-900: #0b1017;
+  --color-ink-850: #0e141d;
+  --color-ink-800: #111823;
+  --color-ink-700: #1a2433;
+  --color-ink-600: #263346;
+
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #059669;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-ink-950 font-sans text-zinc-300 antialiased;
+    background-image:
+      radial-gradient(60rem 32rem at 50% -12rem, rgb(16 185 129 / 0.14), transparent 70%),
+      radial-gradient(40rem 24rem at 100% 0%, rgb(56 189 248 / 0.07), transparent 70%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background-color: rgb(52 211 153 / 0.28);
+    color: #ecfdf5;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand-400);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-ink-700/80 bg-ink-900/70 shadow-[0_1px_0_0_rgb(255_255_255/0.04)_inset,0_18px_50px_-24px_rgb(0_0_0/0.9)] backdrop-blur-sm;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-ink-600/70 bg-ink-800/60 px-2.5 py-1 text-[11px] font-medium tracking-wide text-zinc-400;
+  }
+
+  .mono {
+    @apply font-mono text-[12px] tracking-tight;
+  }
+}
+
+@utility text-balance {
+  text-wrap: balance;
+}
+
+@keyframes sc-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sc-pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgb(52 211 153 / 0.45);
+  }
+  50% {
+    opacity: 0.7;
+    box-shadow: 0 0 0 5px rgb(52 211 153 / 0);
+  }
+}
+
+.animate-fade-up {
+  animation: sc-fade-up 0.35s ease-out both;
+}
+
+.animate-pulse-dot {
+  animation: sc-pulse-dot 2.2s ease-in-out infinite;
+}
+
+/* Slim scrollbars for code blocks and the inspector */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(38 51 70) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: rgb(38 51 70);
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
